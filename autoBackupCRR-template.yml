@@ -1,0 +1,243 @@
+# igarcia 2019-11
+# Version: 0.5
+# Automation for Backups Cross Region Replication
+# Crea Lambda programada con CloudWatch Event para copia automatica de backups (AMIs, snapshots)
+# Recursos creados: Lambda, CloudWatch Event, IAM Role
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Plantilla para Crear Automatizacion de Copia de Backups Cross Region Replication
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Stack Environment"
+        Parameters:
+          - TemplateAmbiente
+      -
+        Label:
+          default: "Backup Cross Region Replication Setup"
+        Parameters:
+          - pTagBusqueda
+          - pTagValor
+          - pFrecuencia
+          - pHora
+          - pDestinationRegion
+          - pEC2resource
+    ParameterLabels: #Define Friendly Names para los Parametros mostrados en la pantalla
+      TemplateAmbiente:
+        default: "Value for CloudFormation Resources Env Tag"
+      pFrecuencia:
+        default: "Frequency, in days"
+      pHora:
+        default: "Time"
+      pTagBusqueda:
+        default: "Selection Tag Key"
+      pTagValor:
+        default: "Selection Tag Value"
+      pDestinationRegion:
+        default: "Destination Region"
+      pEC2resource:
+        default: "EC2 Resource Type"
+
+Parameters: #Definicion de Parametros con Valores Default
+  TemplateAmbiente:
+    Type: String
+    Description: "Tag Env to set on CloudFormation resources"
+    Default: Test
+    MaxLength: 10
+    MinLength: 2
+    ConstraintDescription: "Por favor indique un Tag sencillo de entre 2 y 10 caracteres"
+  pFrecuencia:
+    Type: Number
+    Description: "How often, in # days, the backups will be copied"
+    Default: 31
+    MinValue: 1
+    MaxValue: 31
+  pHora:
+    Type: String
+    Description: "At what time, in 24 hours UTC time format ##:##, the Lambda will start to copy the backups"
+    Default: "6:01"
+    AllowedPattern: "^[0-2]?[0-9]:[0-5][0-9]$"
+    ConstraintDescription: "Por favor indique una hora entre 0:00 a 23:59"
+  pTagBusqueda:
+    Type: String
+    Description: "Tag Key to identify Resources to copy to another Region"
+    Default: Env
+    MaxLength: 20
+    MinLength: 1
+    ConstraintDescription: "Por favor indique un Tag sencillo"
+  pTagValor:
+    Type: String
+    Description: "Tag Value to identify Resources to copy to another Region"
+    Default: Prod
+    MaxLength: 20
+    MinLength: 1
+    ConstraintDescription: "Por favor indique un Valor sencillo"
+  pEC2resource:
+    Type: String
+    Description: "EC2 Resource type for backup, AMI (Instance Image) or EBS Snapshot. RDS and Aurora Snapshots are always included"
+    Default: 'AMI'
+    AllowedValues:
+      - 'AMI'
+      - 'Snapshot'
+  pDestinationRegion:
+    Type: String
+    Description: "Destination Region for the backup copies"
+    Default: 'us-east-1'
+    AllowedValues:
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+      - ap-east-1
+      - ap-south-1
+      - ap-northeast-1
+      - ap-northeast-2
+      - ap-northeast-3
+      - ap-southeast-1
+      - ap-southeast-2
+      - ca-central-1
+      - cn-north-1
+      - cn-northwest-1
+      - eu-central-1
+      - eu-west-1
+      - eu-west-2
+      - eu-west-3
+      - eu-north-1
+      - me-south-1
+      - sa-east-1
+
+Resources:
+  TemplateRole: #Rol para ejecucion de Lambda
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Description: Role para ejecucion de AutoBackupCRR
+      Policies: 
+        -
+          PolicyName: !Join [ "-", [ "PolicyLambdaExec", !Ref TemplateAmbiente ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+        -
+          PolicyName: !Join [ "-", [ "PolicyLambdaEC2", !Ref TemplateAmbiente ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "ec2:*"
+                Resource: "*"
+        -
+          PolicyName: !Join [ "-", [ "PolicyLambdaRDS", !Ref TemplateAmbiente ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "rds:*"
+                Resource: "*"
+        -
+          PolicyName: !Join [ "-", [ "PolicyLambdaKMS", !Ref TemplateAmbiente ] ]
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:Encrypt"
+                  - "kms:Decrypt"
+                  - "kms:ReEncrypt*"
+                  - "kms:GenerateDataKey*"
+                  - "kms:DescribeKey"
+                  - "kms:CreateGrant"
+                  - "kms:ListGrants"
+                  - "kms:RevokeGrant"
+                Resource: "*"
+      RoleName: !Join [ "-", [ "RoleforAutoBackupCRR", !Ref TemplateAmbiente ] ]
+      Tags:
+        - Key: Env
+          Value: !Ref TemplateAmbiente
+
+  TemplateLambda:  #Lambda que copia los backups
+    Type: AWS::Lambda::Function
+    DependsOn: TemplateRole
+    Properties:
+      Code:
+        S3Bucket: higher-artifacts
+        S3Key: "autobackupcrr.zip"
+      Description: Copy backups on regular basis across regions
+      Environment:
+        Variables:
+          FRECUENCIA: !Ref pFrecuencia
+          TAGBUSQUEDA: !Ref pTagBusqueda
+          TAGVALOR: !Ref pTagValor
+          AMBIENTE: !Ref TemplateAmbiente
+          SREGION: !Ref "AWS::Region"
+          DREGION: !Ref pDestinationRegion
+          EC2R: !Ref pEC2resource
+      FunctionName: !Join [ "-", [ "AutoBackupCRRLambda", !Ref TemplateAmbiente ] ]
+      Role: !GetAtt TemplateRole.Arn
+      Timeout: 300
+      Handler: autobackupcrr.lambda_handler
+      Runtime: python3.7
+      MemorySize: 256
+      Tags:
+        -
+          Key: Env
+          Value: !Ref TemplateAmbiente
+
+  TemplateEventLambda:  #Crea Event para invocar la Lambda
+    Type: AWS::Events::Rule
+    DependsOn: TemplateLambda
+    Properties:
+      Description: Invoke Lambda for backup cross region replication
+      Name: !Join [ "-", [ "AutoBackupCRREvent", !Ref TemplateAmbiente ] ]
+      ScheduleExpression: !Join [ "", [ "cron(",!Select [ 1, !Split [ ":", !Ref pHora] ]," ", !Select [ 0, !Split [ ":", !Ref pHora] ], " 1/",!Ref pFrecuencia," * ? *)" ] ]
+      State: ENABLED
+      Targets:
+        -
+          Arn: !GetAtt TemplateLambda.Arn
+          Id: !Join [ "-", [!Ref TemplateAmbiente, "AutoBackupCRRLambda" ] ]
+
+  TemplatePermisoEventLambda: #Relaciona permisos del Event con Lambda
+    Type: AWS::Lambda::Permission
+    DependsOn: TemplateEventLambda
+    Properties:
+      FunctionName: !GetAtt TemplateLambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt TemplateEventLambda.Arn
+
+Outputs: #Salida a mostrarse en la pantalla
+  BackupCopy:
+    Description: Frequency for cross region replication of backups
+    Value: !Join [ "", [ "Every ", !Ref pFrecuencia, " days, at ", !Ref pHora, " UTC" ] ]
+  SourceRegion:
+    Description: Source Region
+    Value: !Ref AWS::Region
+  DestinationRegion:
+    Description: Destination Region
+    Value: !Ref pDestinationRegion
+  ResourcedToCopy:
+    Description: Resources to Copy
+    Value: !Join [ "", [ "EC2's ", !Ref pEC2resource, "s, RDS & Aurora Snapshots " ] ]
