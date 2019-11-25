@@ -4,6 +4,8 @@ It uses CloudFormation and Lambda
 
 It will copy AMIs or EBS Snapshots, and RDS (including Aurora) Snapshots with a specified Tag and Value from a source region to another region. (This could help on keeping a pilot-light Multi-Region site)
 
+> Version 0.6
+
 ### Files:
 - autoBackupCRR-template.yml, CloudFormation template to Run in your account in Source Region, it is already in a public S3 bucket
 

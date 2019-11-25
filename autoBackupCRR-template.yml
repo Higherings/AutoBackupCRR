@@ -1,5 +1,5 @@
 # igarcia 2019-11
-# Version: 0.5
+# Version 0.6
 # Automation for Backups Cross Region Replication
 # Crea Lambda programada con CloudWatch Event para copia automatica de backups (AMIs, snapshots)
 # Recursos creados: Lambda, CloudWatch Event, IAM Role

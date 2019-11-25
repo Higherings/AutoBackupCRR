@@ -1,5 +1,5 @@
 # igarcia 2019-11
-# Version 0.5
+# Version 0.6
 # Deployable on Source Region
 # Function DOES copy AMIs or EBS Snapshots, with a defined Tag, from source Region to another 
 # Function DOES copy RDS Snapshots (includes Aurora), with a defined Tag, from source Region to another
@@ -265,6 +265,10 @@ def lambda_handler(event, context):
             copias_rds+=csnapshot['Copias']
             errores_rds+=csnapshot['Errores']
 
+    print('Ejecucion Completada, AMIs Copiadas: '+str(copias_ami)+' con '+str(errores_ami)+' Errores.')
+    print('Aurora Snapshots Copiados: '+str(copias_aurora)+' con '+str(errores_aurora)+' Errores.')
+    print('RDS Snapshots Copiados: '+str(copias_rds)+' con '+str(errores_rds)+' Errores.')
+    print('EBS Snapshots Copiados: '+str(copias_snapshot)+' con '+str(errores_snapshot)+' Errores.')
     return {
         'statusCode': 200,
         'body': json.dumps(
