@@ -1,5 +1,5 @@
-# igarcia 2019-11
-# Version 0.6
+# igarcia 2020-04
+# Version 0.9
 # Automation for Backups Cross Region Replication
 # Crea Lambda programada con CloudWatch Event para copia automatica de backups (AMIs, snapshots)
 # Recursos creados: Lambda, CloudWatch Event, IAM Role
@@ -95,12 +95,9 @@ Parameters: #Definicion de Parametros con Valores Default
       - ap-south-1
       - ap-northeast-1
       - ap-northeast-2
-      - ap-northeast-3
       - ap-southeast-1
       - ap-southeast-2
       - ca-central-1
-      - cn-north-1
-      - cn-northwest-1
       - eu-central-1
       - eu-west-1
       - eu-west-2
@@ -108,6 +105,7 @@ Parameters: #Definicion de Parametros con Valores Default
       - eu-north-1
       - me-south-1
       - sa-east-1
+      - af-south-1
 
 Resources:
   TemplateRole: #Rol para ejecucion de Lambda
@@ -180,11 +178,10 @@ Resources:
 
   TemplateLambda:  #Lambda que copia los backups
     Type: AWS::Lambda::Function
-    DependsOn: TemplateRole
     Properties:
       Code:
-        S3Bucket: higher-artifacts
-        S3Key: "autobackupcrr.zip"
+        S3Bucket: !Join [ "-", [ "higher-artifacts", !Ref "AWS::Region" ] ]
+        S3Key: "solutions/autobackupcrr.zip"
       Description: Copy backups on regular basis across regions
       Environment:
         Variables:
@@ -208,7 +205,6 @@ Resources:
 
   TemplateEventLambda:  #Crea Event para invocar la Lambda
     Type: AWS::Events::Rule
-    DependsOn: TemplateLambda
     Properties:
       Description: Invoke Lambda for backup cross region replication
       Name: !Join [ "-", [ "AutoBackupCRREvent", !Ref TemplateAmbiente ] ]
@@ -221,7 +217,6 @@ Resources:
 
   TemplatePermisoEventLambda: #Relaciona permisos del Event con Lambda
     Type: AWS::Lambda::Permission
-    DependsOn: TemplateEventLambda
     Properties:
       FunctionName: !GetAtt TemplateLambda.Arn
       Action: "lambda:InvokeFunction"
