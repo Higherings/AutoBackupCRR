@@ -1,12 +1,12 @@
 # AutoBackupCRR
 Easy to configure automation to copy backups of AWS resources (EC2, RDS) from one region to another (Cross Region Replication)
-It uses CloudFormation and Lambda
+It uses CloudFormation and Lambda (Python 3.8)
 
 It will copy AMIs or EBS Snapshots, and RDS (including Aurora) Snapshots with a specified Tag and Value from a source region to another region. (This could help on keeping a pilot-light Multi-Region site)
 
 If it's now working on your Region create an Issue and I will fix it.
 
-> Version 0.9
+> Version 1.0.0
 
 ### Files:
 - autoBackupCRR-template.yml, CloudFormation template to Run in your account in Source Region, it is already in a public S3 bucket

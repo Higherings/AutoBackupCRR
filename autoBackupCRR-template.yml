@@ -1,5 +1,5 @@
 # igarcia 2020-04
-# Version 0.9
+# Version 1.0.0
 # Automation for Backups Cross Region Replication
 # Crea Lambda programada con CloudWatch Event para copia automatica de backups (AMIs, snapshots)
 # Recursos creados: Lambda, CloudWatch Event, IAM Role
@@ -194,9 +194,9 @@ Resources:
           EC2R: !Ref pEC2resource
       FunctionName: !Join [ "-", [ "AutoBackupCRRLambda", !Ref TemplateAmbiente ] ]
       Role: !GetAtt TemplateRole.Arn
-      Timeout: 300
+      Timeout: 800
       Handler: autobackupcrr.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.8
       MemorySize: 256
       Tags:
         -

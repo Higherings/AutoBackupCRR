@@ -1,5 +1,5 @@
 # igarcia 2020-04
-# Version 0.9
+# Version 1.0.0
 # Deployable on Source Region
 # Function DOES copy AMIs or EBS Snapshots, with a defined Tag, from source Region to another 
 # Function DOES copy RDS Snapshots (includes Aurora), with a defined Tag, from source Region to another
