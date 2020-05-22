@@ -4,7 +4,7 @@ It uses CloudFormation and Lambda (Python 3.8)
 
 It will copy AMIs or EBS Snapshots, and RDS (including Aurora) Snapshots with a specified Tag and Value from a source region to another region. (This could help on keeping a pilot-light Multi-Region site)
 
-If it's now working on your Region create an Issue and I will fix it.
+If it's not working on your Region create an Issue and I will fix it.
 
 > Version 1.0.0
 
